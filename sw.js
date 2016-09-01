@@ -29,7 +29,7 @@ addEventListener('activate', event => { console.log(`${event.type} ${version}`);
   );
 });
 
-addEventListener('fetch', event => { console.log(event.request);
+addEventListener('fetch', event => { console.log(`[online: ${navigator.onLine}] fetch ${event.request.url}`);
   //
 });
 
