@@ -23,7 +23,7 @@ addEventListener('activate', event => { console.log(`${event.type} ${version}`);
         .filter(key => !key.startsWith(version))
         .map(key => caches.delete(key))
       )
-      .then(Promise.all)
+      .then(deletions => Promise.all(deletions))
       .catch(err => console.warn(err))
       .then(clients.claim())
   );
