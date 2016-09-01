@@ -10,4 +10,12 @@ if ('serviceWorker' in navigator) {
   sw.addEventListener('controllerchange', event => {
     console.log('worker controller changed');
   });
+
+  addEventListener('online', event => {
+    console.log('browser is online');
+  });
+
+  addEventListener('offline', event => {
+    console.log('browser is offline');
+  });
 }
