@@ -1,0 +1,34 @@
+{
+  "name": "pwa-trials",
+  "version": "0.1.0",
+  "description": "An area to test out PWA stuff",
+  "main": "index.js",
+  "scripts": {
+    "start": "gulp clean && gulp && live-server --no-browser --host=localhost --port=3000 dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cloudfour/pwa-trials.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cloudfour/pwa-trials/issues"
+  },
+  "homepage": "https://github.com/cloudfour/pwa-trials#readme",
+  "devDependencies": {
+    "@cloudfour/gulp-tasks": "^2.0.1",
+    "gulp": "^3.9.1",
+    "gulp-postcss": "^6.1.1",
+    "gulp-replace": "^0.5.4",
+    "gulp-rev": "^7.1.2",
+    "live-server": "^1.1.0",
+    "postcss-cssnext": "^2.7.0",
+    "postcss-import": "^8.1.2",
+    "streamqueue": "^1.1.1"
+  },
+  "dependencies": {
+    "suitcss": "^2.0.0"
+  }
+}
