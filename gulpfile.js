@@ -32,7 +32,7 @@ gulp.task('html', () => gulp.src('*.html')
 //   .pipe(gulp.dest('dist'))
 // );
 
-gulp.task('sw', () => gulp.src('sw.js')
+gulp.task('sw', () => gulp.src(['sw.js', 'rev-manifest.json'])
   .pipe(replace('__VERSION__', version))
   .pipe(gulp.dest('dist'))
 );

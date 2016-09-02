@@ -2,21 +2,34 @@
 
 const version = '__VERSION__';
 const cacheName = `${version}`;
-const deps = [
-  '/assets/main.css',
-  '/assets/main.js'
-];
 
-addEventListener('install', event => { console.log(`${event.type} ${version}`);
+/**
+ * Load the JSON manifest of hashed asset paths;
+ * Open the cache and add all assets;
+ */
+addEventListener('install', event => { //console.log(`${event.type} ${version}`);
   event.waitUntil(
-    caches.open(cacheName)
-      .then(cache => cache.addAll(deps))
+    fetch('/rev-manifest.json')
+      .then(res => {
+        return Promise.all([
+          caches.open(cacheName),
+          res.json()
+        ]);
+      })
+      .then(([cache, deps]) => {
+        const paths = Object.keys(deps).map(key => `/assets/${deps[key]}`);
+        return cache.addAll(paths);
+      })
       .catch(err => console.warn(err))
       .then(skipWaiting())
   );
 });
 
-addEventListener('activate', event => { console.log(`${event.type} ${version}`);
+/**
+ * Collect all of the cache keys that don't match the current version;
+ * Delete those cache keys;
+ */
+addEventListener('activate', event => { //console.log(`${event.type} ${version}`);
   event.waitUntil(
     caches.keys()
       .then(keys => keys
@@ -29,14 +42,14 @@ addEventListener('activate', event => { console.log(`${event.type} ${version}`);
   );
 });
 
-addEventListener('fetch', event => { console.log(`[online: ${navigator.onLine}] fetch ${event.request.url}`);
+addEventListener('fetch', event => { //console.log(`[online: ${navigator.onLine}] fetch ${event.request.url}`);
   //
 });
 
-addEventListener('message', event => { console.log(`${event.type} ${version}`);
+addEventListener('message', event => { //console.log(`${event.type} ${version}`);
   //
 });
 
-addEventListener('sync', event => { console.log(`${event.type} ${version}`);
+addEventListener('sync', event => { //console.log(`${event.type} ${version}`);
   //
 });
