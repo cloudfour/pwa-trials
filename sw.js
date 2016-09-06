@@ -42,14 +42,27 @@ addEventListener('activate', event => { //console.log(`${event.type} ${version}`
   );
 });
 
+/**
+ * @TODO: implement
+ * Inspect event request to determine if it needs handling.
+ * Depending on the type of resource requested (image, page, etc.), do something.
+ */
 addEventListener('fetch', event => { //console.log(`[online: ${navigator.onLine}] fetch ${event.request.url}`);
   //
 });
 
+/**
+ * @TODO: implement
+ * Inspect event message to determine if it needs handling.
+ * Depending on the type of message, do something.
+ */
 addEventListener('message', event => { //console.log(`${event.type} ${version}`);
   //
 });
 
+/**
+ * @TODO: implement
+ */
 addEventListener('sync', event => { //console.log(`${event.type} ${version}`);
   //
 });
