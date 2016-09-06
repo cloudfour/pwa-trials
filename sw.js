@@ -9,7 +9,7 @@ const cacheName = `${version}`;
  */
 addEventListener('install', event => { //console.log(`${event.type} ${version}`);
   event.waitUntil(
-    fetch('/rev-manifest.json')
+    fetch('/rev-manifest.json') // TODO: avoid hard-coding path
       .then(res => {
         return Promise.all([
           caches.open(cacheName),
@@ -17,7 +17,7 @@ addEventListener('install', event => { //console.log(`${event.type} ${version}`)
         ]);
       })
       .then(([cache, deps]) => {
-        const paths = Object.keys(deps).map(key => `/assets/${deps[key]}`);
+        const paths = Object.keys(deps).map(key => deps[key]);
         return cache.addAll(paths);
       })
       .catch(err => console.warn(err))
