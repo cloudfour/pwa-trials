@@ -3,10 +3,13 @@
   <head>
     <meta charset="utf-8">
     <title>SW</title>
-    <link rel="stylesheet" href="/assets/main.css">
+    <link rel="stylesheet" href="/assets/{{assetPath "main.css"}}">
   </head>
   <body>
     <h1>test</h1>
-    <script src="/assets/main.js"></script>
+    <script>
+      const assetHash = '{{assetHash}}';
+    </script>
+    <script src="/assets/{{assetPath "main.js"}}"></script>
   </body>
 </html>

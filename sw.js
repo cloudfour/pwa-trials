@@ -1,45 +1,45 @@
 'use strict';
 
-const version = '__VERSION__';
-const cacheName = `${version}`;
+function cacheAssets (urls) {
+  return caches.open('assets')
+    .then(cache => cache.addAll(urls))
+    .then(() => true)
+    .catch(err => {
+      console.warn(err);
+      return false;
+    });
+}
 
-/**
- * Load the JSON manifest of hashed asset paths;
- * Open the cache and add all assets;
- */
-addEventListener('install', event => { //console.log(`${event.type} ${version}`);
+function uncacheAssets () {
+  return caches.delete('assets')
+    .catch(err => console.warn(err));
+}
+
+function updateAssets (manifestUrl) {
+  return uncacheAssets()
+    .then(() => fetch(manifestUrl))
+    .then(res => res.json())
+    .then(manifest => Object.values(manifest))
+    .then(urls => cacheAssets(urls))
+    .catch(err => {
+      console.warn(err);
+      return false;
+    });
+}
+
+const messageActions = new Map([
+  ['updateAssets', updateAssets]
+]);
+
+addEventListener('install', event => {
   event.waitUntil(
-    fetch('/rev-manifest.json') // TODO: avoid hard-coding path
-      .then(res => {
-        return Promise.all([
-          caches.open(cacheName),
-          res.json()
-        ]);
-      })
-      .then(([cache, deps]) => {
-        const paths = Object.keys(deps).map(key => deps[key]);
-        return cache.addAll(paths);
-      })
-      .catch(err => console.warn(err))
+    uncacheAssets()
       .then(skipWaiting())
   );
 });
 
-/**
- * Collect all of the cache keys that don't match the current version;
- * Delete those cache keys;
- */
-addEventListener('activate', event => { //console.log(`${event.type} ${version}`);
-  event.waitUntil(
-    caches.keys()
-      .then(keys => keys
-        .filter(key => !key.startsWith(version))
-        .map(key => caches.delete(key))
-      )
-      .then(deletions => Promise.all(deletions))
-      .catch(err => console.warn(err))
-      .then(clients.claim())
-  );
+addEventListener('activate', event => {
+  event.waitUntil(clients.claim());
 });
 
 /**
@@ -56,13 +56,26 @@ addEventListener('fetch', event => { //console.log(`[online: ${navigator.onLine}
  * Inspect event message to determine if it needs handling.
  * Depending on the type of message, do something.
  */
-addEventListener('message', event => { //console.log(`${event.type} ${version}`);
-  //
+addEventListener('message', event => {
+  console.log(`message from client (${event.source.id}) received by worker`, event);
+  const {action, payload} = event.data;
+  const command = messageActions.get(action);
+
+  if (command) {
+    command(payload)
+      .then(success => {
+        return Promise.all([
+          clients.get(event.source.id),
+          success
+        ])
+      })
+      .then(([client, success]) => client.postMessage(success))
+  }
 });
 
 /**
  * @TODO: implement
  */
-addEventListener('sync', event => { //console.log(`${event.type} ${version}`);
+addEventListener('sync', event => {
   //
 });

@@ -20,12 +20,18 @@
   "devDependencies": {
     "@cloudfour/gulp-tasks": "^2.0.1",
     "gulp": "^3.9.1",
+    "gulp-compile-handlebars": "^0.6.1",
+    "gulp-data": "^1.2.1",
     "gulp-postcss": "^6.1.1",
     "gulp-replace": "^0.5.4",
     "gulp-rev": "^7.1.2",
+    "gulp-rev-all": "^0.8.24",
+    "handlebars": "^4.0.5",
     "live-server": "^1.1.0",
     "postcss-cssnext": "^2.7.0",
     "postcss-import": "^8.1.2",
+    "rev-del": "^1.0.5",
+    "rev-hash": "^1.0.0",
     "streamqueue": "^1.1.1"
   },
   "dependencies": {
