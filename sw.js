@@ -1,39 +1,83 @@
 'use strict';
 
-function cacheAssets (urls) {
-  return caches.open('assets')
-    .then(cache => cache.addAll(urls))
-    .then(() => true)
-    .catch(err => {
-      console.warn(err);
-      return false;
-    });
+const cacheName = 'default';
+
+const dependencies = new Map([
+  ['offlinePage', '/offline.html'],
+  ['offlineImage', '/assets/image.gif']
+]);
+
+const fallbacks = new Map([
+  ['image', dependencies.get('offlineImage')],
+  ['page', dependencies.get('offlinePage')]
+]);
+
+const messageActions = new Map([
+  ['updateAssets', updateAssets],
+  [undefined, () => Promise.reject(null)]
+]);
+
+const assetRules = new Map([
+  ['css', [
+    req => req.headers.get('accept').includes('css'),
+    req => new URL(req.url).pathname.endsWith('.css')
+  ]],
+  ['js', [
+    req => req.headers.get('accept').includes('javascript'),
+    req => new URL(req.url).pathname.endsWith('.js')
+  ]],
+  ['image', [
+    req => /\.(png|gif|jpg|svg)$/.test(req.url)
+  ]]
+]);
+
+function openCache () {
+  return caches.open(cacheName);
 }
 
-function uncacheAssets () {
-  return caches.delete('assets')
-    .catch(err => console.warn(err));
+function deleteCache () {
+  return caches.delete(cacheName);
+}
+
+function anyPass (rules, subject) {
+  return rules
+    .map(rule => rule(subject))
+    .some(result => result === true);
+}
+
+function cacheUrls (urls) {
+  return openCache()
+    .then(cache => cache.addAll(urls))
+    .then(() => true)
+    .catch(() => false);
+}
+
+function fetchValues (jsonUrl) {
+  return fetch(jsonUrl)
+    .then(res => res.json())
+    .then(json => Object.values(json));
+}
+
+function fetchKeep (req) {
+  return fetch(req)
+    .then(res => {
+      if (res.ok) {
+        openCache().then(cache => cache.put(req, res));
+      }
+      return res.clone();
+    });
 }
 
 function updateAssets (manifestUrl) {
-  return uncacheAssets()
-    .then(() => fetch(manifestUrl))
-    .then(res => res.json())
-    .then(manifest => Object.values(manifest))
-    .then(urls => cacheAssets(urls))
-    .catch(err => {
-      console.warn(err);
-      return false;
-    });
+  return fetchValues(manifestUrl)
+    .then(urls => cacheUrls(urls))
+    .catch(() => false);
 }
-
-const messageActions = new Map([
-  ['updateAssets', updateAssets]
-]);
 
 addEventListener('install', event => {
   event.waitUntil(
-    uncacheAssets()
+    deleteCache()
+      .then(cacheUrls(Array.from(dependencies.values())))
       .then(skipWaiting())
   );
 });
@@ -48,7 +92,30 @@ addEventListener('activate', event => {
  * Depending on the type of resource requested (image, page, etc.), do something.
  */
 addEventListener('fetch', event => { //console.log(`[online: ${navigator.onLine}] fetch ${event.request.url}`);
-  //
+  const request = event.request;
+  const url = new URL(request.url);
+  let assetType;
+
+  for (let [type, rules] of assetRules) {
+    if (anyPass(rules, request)) {
+      assetType = type;
+      break;
+    }
+  }
+
+  if (assetType) {
+    event.respondWith(
+      caches.match(request)
+        .then(res => res || fetchKeep(request))
+        .catch(() => caches.match(fallbacks.get(assetType)))
+    );
+  } else {
+    event.respondWith(
+      fetchKeep(request)
+        .catch(() => caches.match(request))
+        .then(res => res || caches.match(fallbacks.get('page')))
+    );
+  }
 });
 
 /**
@@ -56,21 +123,19 @@ addEventListener('fetch', event => { //console.log(`[online: ${navigator.onLine}
  * Inspect event message to determine if it needs handling.
  * Depending on the type of message, do something.
  */
-addEventListener('message', event => {
-  console.log(`message from client (${event.source.id}) received by worker`, event);
+addEventListener('message', event => { console.log(event);
   const {action, payload} = event.data;
   const command = messageActions.get(action);
-
-  if (command) {
-    command(payload)
-      .then(success => {
-        return Promise.all([
-          clients.get(event.source.id),
-          success
-        ])
-      })
-      .then(([client, success]) => client.postMessage(success))
-  }
+  command(payload)
+    .then(success => {
+      return Promise.all([
+        clients.get(event.source.id),
+        success
+      ])
+    })
+    .then(([client, success]) => client.postMessage({
+      action: 'storeAssetHash'
+    }))
 });
 
 /**

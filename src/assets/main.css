@@ -3,3 +3,7 @@
 @custom-media --sm-viewport (width < 35em);
 @custom-media --md-viewport (width >= 35em) and (width < 56em);
 @custom-media --lg-viewport (width >= 56em);
+
+body {
+  background: red;
+}

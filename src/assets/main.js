@@ -2,18 +2,24 @@
 
 if ('serviceWorker' in navigator) {
   const sw = navigator.serviceWorker;
-  const storedAssetHash = localStorage.getItem('assetHash');
+  const ls = localStorage;
+  const messageActions = new Map([
+    ['storeAssetHash', () => ls.setItem('assetHash', assetHash)],
+    [undefined, () => null]
+  ]);
 
   sw.register('/sw.js').then(reg => {
-    console.log('worker registered', reg);
+    // console.log('worker registered', reg);
   });
 
   sw.addEventListener('controllerchange', event => {
-    console.log('worker controller changed');
+    // console.log('worker controller changed');
   });
 
   sw.addEventListener('message', event => {
-    console.log('message from worker received by client', event);
+    const {action, payload} = event.data;
+    const command = messageActions.get(action);
+    command(payload);
   });
 
   addEventListener('online', event => {
@@ -25,11 +31,10 @@ if ('serviceWorker' in navigator) {
   });
 
   addEventListener('load', event => {
-    if (storedAssetHash !== assetHash) {
-      console.log('assets are stale');
+    if (ls.getItem('assetHash') !== assetHash && sw.controller) {
       sw.controller.postMessage({
         action: 'updateAssets',
-        payload: '/assets/rev-manifest.json'
+        payload: '/rev-manifest.json'
       });
     }
   });

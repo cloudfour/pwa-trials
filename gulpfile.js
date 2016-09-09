@@ -24,20 +24,25 @@ gulp.task('js', ['sw'], () => gulp.src('src/assets/*.js')
   .pipe(gulp.dest('dist/assets'))
 );
 
+
+gulp.task('img', () => gulp.src('src/assets/*.{png,gif,jpg,svg}')
+  .pipe(gulp.dest('dist/assets'))
+);
+
 gulp.task('sw', () => gulp.src('sw.js')
   .pipe(gulp.dest('dist'))
 );
 
-gulp.task('rev', ['css', 'js'], () => gulp.src('dist/assets/main.{css,js}')
+gulp.task('rev', ['css', 'js'], () => gulp.src('dist/assets/main.{css,js}', {base: 'dist'})
   .pipe(rev())
-  .pipe(gulp.dest('dist/assets'))
-  .pipe(rev.manifest({merge: true}))
-  .pipe(gulp.dest('dist/assets'))
+  .pipe(gulp.dest('dist'))
+  .pipe(rev.manifest())
+  .pipe(gulp.dest('dist'))
 );
 
 gulp.task('html', ['rev'], () => gulp.src('*.html')
   .pipe(data(file => {
-    const manifest = fs.readFileSync('./dist/assets/rev-manifest.json');
+    const manifest = fs.readFileSync('./dist/rev-manifest.json');
     return {
       assetMap: JSON.parse(manifest.toString()),
       assetHash: revhash(manifest)
@@ -53,4 +58,4 @@ gulp.task('html', ['rev'], () => gulp.src('*.html')
   .pipe(gulp.dest('dist'))
 );
 
-gulp.task('default', ['html'], done => done())
+gulp.task('default', ['html', 'img'], done => done())
