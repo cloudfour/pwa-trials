@@ -4,8 +4,8 @@
 /*
 TODO:
 Intercept <link> fetch for rev-manifest.json
-Compare integrity hash from request to one saved in indexedDB
-If different, then replace the assets cache and update DB record.
+Compare integrity hash from request to one saved in cache
+If different, then replace the assets cache and update cache entry.
 */
 
 
