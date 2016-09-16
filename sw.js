@@ -7,7 +7,7 @@ class FetchHandler {
   static passThru (request) {
     return fetch(request)
       .then(response => {
-        return response.ok ?
+        return isGoodResponse(response) ?
           putCache(cacheName, request, response) :
           response;
       });
@@ -36,7 +36,7 @@ class FetchHandler {
   static onlineFirst (request) {
     return FetchHandler.passThru(request)
       .then(response => {
-        return response.ok ?
+        return isGoodResponse(response) ?
           response :
           FetchHandler.matchFuzzy(request)
       });
@@ -75,23 +75,21 @@ class Criteria {
   }
 }
 
+const fetchOptions = {
+  shell: {cache: 'no-store'}
+};
 const version = '0.1.0';
 const cacheName = `cloudfour@${version}`;
-const manifest = new Request('/rev-manifest.json', {cache: 'no-store'});
-const offlinePage = new Request('/offline.html', {cache: 'no-store'});
-const fallbackImage = new Request('//placekitten.com/400/400');
-
-// const messageActions = new Map([
-//   [undefined, () => Promise.reject(null)]
-// ]);
+const manifest = new Request('/rev-manifest.json', fetchOptions.shell);
+const offlinePage = new Request('/offline.html', fetchOptions.shell);
+const fallbackImage = new Request('/assets/image.gif', fetchOptions.shell);
 
 const resourceType = Object.freeze({
+  iframe: Symbol('iframe'),
   image: Symbol('image'),
   script: Symbol('script'),
   stylesheet: Symbol('stylesheet')
 });
-
-const resourceTypeKeys = Object.keys(resourceType);
 
 const typesByExtension = new Map([
   ['css', resourceType.stylesheet],
@@ -102,25 +100,15 @@ const typesByExtension = new Map([
   ['svg', resourceType.image]
 ]);
 
-const extensionKeys = Array.from(typesByExtension.keys());
-
-const extensionsByType = new Map(
-  resourceTypeKeys.map(key => [
-    resourceType[key],
-    extensionKeys.filter(ext =>
-      typesByExtension.get(ext) === resourceType[key]
-    )
-  ])
-);
-
 const routesByType = new Map([
+  [resourceType.iframe, FetchHandler.onlineFirst],
   [resourceType.image, FetchHandler.offlineFirst],
   [resourceType.script, FetchHandler.offlineFirst],
   [resourceType.stylesheet, FetchHandler.offlineFirst],
   [undefined, FetchHandler.onlineFirst]
 ]);
 
-const fallbacksByType = new Map([
+const fallbacks = new Map([
   [resourceType.image, fallbackImage]
 ]);
 
@@ -149,10 +137,22 @@ function putCache (name, request, response) {
 }
 
 function matchFallback (type) {
-  const fallback = fallbacksByType.get(type);
+  const fallback = fallbacks.get(type);
   return fallback ?
     caches.match(fallback) :
     Promise.resolve(new Response())
+}
+
+function isGoodResponse (response) {
+  return response && response.ok;
+}
+
+function testAll (rules, result, subject) {
+  return rules.every(rule => rule(subject) === result);
+}
+
+function testAny (rules, result, subject) {
+  return rules.some(rule => rule(subject) === result);
 }
 
 /**
@@ -160,14 +160,13 @@ function matchFallback (type) {
  */
 addEventListener('install', event => {
   console.log(event);
-  event.waitUntil(
+  return event.waitUntil(
     Promise.all([caches.open(cacheName), fetchData(manifest)])
       .then(([cache, data]) => {
-        const urls = Object.values(data).concat(
-          offlinePage,
-          fallbackImage
+        const shellRequests = Object.values(data);
+        return cache.addAll(
+          shellRequests.concat(offlinePage, fallbackImage)
         );
-        return cache.addAll(urls);
       })
       .then(skipWaiting())
   );
@@ -178,9 +177,9 @@ addEventListener('install', event => {
  */
 addEventListener('activate', event => {
   console.log(event);
-  event.waitUntil(
-    deleteCaches(name => name !== cacheName)
-      .then(clients.claim())
+  deleteCaches(name => name !== cacheName);
+  return event.waitUntil(
+    clients.claim()
   );
 });
 
@@ -188,6 +187,7 @@ addEventListener('activate', event => {
  * Fetch event handling
  */
 addEventListener('fetch', event => {
+  console.log(event);
   const request = event.request;
   const extension = getExtension(request);
   const type = typesByExtension.get(extension);
@@ -200,11 +200,12 @@ addEventListener('fetch', event => {
 
   if (criteria.testAll(request)) {
     const showOffline = !navigator.onLine && request.mode === 'navigate';
+    const fallback = matchFallback(type);
     event.preventDefault();
     event.respondWith(
       showOffline ? caches.match(offlinePage) : route(request)
-        .then(response => response.ok ? response : matchFallback(type))
-        .catch(() => matchFallback(type))
+        .then(response => isGoodResponse(response) ? response : fallback)
+        .catch(() => fallback)
     );
   }
 });
