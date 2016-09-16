@@ -10,11 +10,16 @@
     <h1>test</h1>
     <form>
       <input name="msg">
-      <button class="Button">Post Message</button>
+      <button type="submit" class="Button">Post Message</button>
+      <button type="button" class="Button" id="reload">Reload shell</button>
     </form>
-    <button class="Button" id="reload">Reload shell</button>
+
     <iframe src="/iframe.html"></iframe>
-    <img src="/nope.png" alt="This does not exist">
+    
+    <p>
+      <img src="/nope.png" alt="This does not exist">
+      <img src="//echo.getpostman.com/status/500.png" alt="This will error">
+    </p>
     <script src="/{{assetPath "assets/main.js"}}"></script>
   </body>
 </html>

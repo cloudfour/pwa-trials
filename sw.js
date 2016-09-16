@@ -7,13 +7,9 @@ class FetchHandler {
   static passThru (request) {
     return fetch(request)
       .then(response => {
-        if (response.ok) {
-          caches.open(cacheName)
-            .then(cache => cache.put(request, response));
-          return response.clone();
-        } else {
-          return response;
-        }
+        return response.ok ?
+          putCache(cacheName, request, response) :
+          response;
       });
   }
 
@@ -40,10 +36,10 @@ class FetchHandler {
   static onlineFirst (request) {
     return FetchHandler.passThru(request)
       .then(response => {
-        if (!response.ok) throw `Bad response ${response.statusText}`;
-        return response;
-      })
-      .catch(() => FetchHandler.matchFuzzy(request))
+        return response.ok ?
+          response :
+          FetchHandler.matchFuzzy(request)
+      });
   }
 
   /**
@@ -83,6 +79,7 @@ const version = '0.1.0';
 const cacheName = `cloudfour@${version}`;
 const manifest = new Request('/rev-manifest.json', {cache: 'no-store'});
 const offlinePage = new Request('/offline.html', {cache: 'no-store'});
+const fallbackImage = new Request('//placekitten.com/400/400');
 
 // const messageActions = new Map([
 //   [undefined, () => Promise.reject(null)]
@@ -123,6 +120,10 @@ const routesByType = new Map([
   [undefined, FetchHandler.onlineFirst]
 ]);
 
+const fallbacksByType = new Map([
+  [resourceType.image, fallbackImage]
+]);
+
 function getExtension (subject) {
   const {pathname} = new URL(subject.url);
   const [extension] = pathname.match(/(?!\.)\w+$/i) || [];
@@ -141,6 +142,19 @@ function deleteCaches (filter) {
     .then(deletions => Promise.all(deletions));
 }
 
+function putCache (name, request, response) {
+  caches.open(name)
+    .then(cache => cache.put(request, response));
+  return response.clone();
+}
+
+function matchFallback (type) {
+  const fallback = fallbacksByType.get(type);
+  return fallback ?
+    caches.match(fallback) :
+    Promise.resolve(new Response())
+}
+
 /**
  * Installation event handling
  */
@@ -149,8 +163,10 @@ addEventListener('install', event => {
   event.waitUntil(
     Promise.all([caches.open(cacheName), fetchData(manifest)])
       .then(([cache, data]) => {
-        const urls = Object.values(data);
-        urls.push(offlinePage);
+        const urls = Object.values(data).concat(
+          offlinePage,
+          fallbackImage
+        );
         return cache.addAll(urls);
       })
       .then(skipWaiting())
@@ -187,7 +203,8 @@ addEventListener('fetch', event => {
     event.preventDefault();
     event.respondWith(
       showOffline ? caches.match(offlinePage) : route(request)
-        .then(response => response.ok ? response : new Response())
+        .then(response => response.ok ? response : matchFallback(type))
+        .catch(() => matchFallback(type))
     );
   }
 });
