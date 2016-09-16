@@ -4,13 +4,17 @@
     <meta charset="utf-8">
     <title>SW</title>
     <link rel="stylesheet" href="/{{assetPath "assets/main.css"}}">
+    <link rel="prefetch" href="/assets/image.gif?fallback">
   </head>
   <body>
     <h1>test</h1>
-    <img src="//placehold.it/400.png">
-    <script>
-      const assetHash = '{{assetHash}}';
-    </script>
+    <form>
+      <input name="msg">
+      <button class="Button">Post Message</button>
+    </form>
+    <button class="Button" id="reload">Reload shell</button>
+    <iframe src="/iframe.html"></iframe>
+    <img src="/nope.png" alt="This does not exist">
     <script src="/{{assetPath "assets/main.js"}}"></script>
   </body>
 </html>

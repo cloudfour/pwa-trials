@@ -4,7 +4,8 @@
   "description": "An area to test out PWA stuff",
   "main": "index.js",
   "scripts": {
-    "start": "gulp clean && gulp && live-server --no-browser --cors --host=localhost --port=3000 dist",
+    "start": "gulp clean && gulp && http-server dist --cors -s -c120 --a=localhost --p=3000",
+    "start2": "gulp clean && gulp && live-server --no-browser --cors --host=localhost --port=3000 dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -27,6 +28,7 @@
     "gulp-rev": "^7.1.2",
     "gulp-rev-all": "^0.8.24",
     "handlebars": "^4.0.5",
+    "http-server": "^0.9.0",
     "live-server": "^1.1.0",
     "postcss-cssnext": "^2.7.0",
     "postcss-import": "^8.1.2",

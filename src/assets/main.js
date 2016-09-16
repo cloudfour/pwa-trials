@@ -2,40 +2,44 @@
 
 if ('serviceWorker' in navigator) {
   const sw = navigator.serviceWorker;
-  const ls = localStorage;
-  const messageActions = new Map([
-    ['storeAssetHash', () => ls.setItem('assetHash', assetHash)],
-    [undefined, () => null]
-  ]);
+  const form = document.querySelector('form');
+  const reloadButton = document.getElementById('reload');
 
   sw.register('/sw.js').then(reg => {
-    // console.log('worker registered', reg);
+    console.log(reg);
   });
 
   sw.addEventListener('controllerchange', event => {
-    // console.log('worker controller changed');
+    console.log(event);
   });
 
   sw.addEventListener('message', event => {
-    const {action, payload} = event.data;
-    const command = messageActions.get(action);
-    command(payload);
+    console.log(event);
   });
 
   addEventListener('online', event => {
-    console.log('browser is online');
+    console.log(event);
   });
 
   addEventListener('offline', event => {
-    console.log('browser is offline');
+    console.log(event);
   });
 
-  addEventListener('load', event => {
-    if (ls.getItem('assetHash') !== assetHash && sw.controller) {
-      sw.controller.postMessage({
-        action: 'updateAssets',
-        payload: '/rev-manifest.json'
+  if (form) {
+    form.addEventListener('submit', event => {
+      console.log(event);
+      sw.controller.postMessage(new FormData(event.target).get('msg'));
+      event.preventDefault();
+    });
+  }
+
+  if (reloadButton) {
+    reloadButton.addEventListener('click', event => {
+      Array.from(document.querySelectorAll('link[rel=stylesheet]')).forEach((item, index, arr) => {
+        const el = arr[index];
+        const clone = el.cloneNode();
+        el.replaceWith(clone);
       });
-    }
-  });
+    });
+  }
 }

@@ -5,5 +5,5 @@
 @custom-media --lg-viewport (width >= 56em);
 
 body {
-  background: red;
+  background: lime;
 }

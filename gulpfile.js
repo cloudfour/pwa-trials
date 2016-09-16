@@ -44,8 +44,7 @@ gulp.task('html', ['rev'], () => gulp.src('*.html')
   .pipe(data(file => {
     const manifest = fs.readFileSync('./dist/rev-manifest.json');
     return {
-      assetMap: JSON.parse(manifest.toString()),
-      assetHash: revhash(manifest)
+      assetMap: JSON.parse(manifest.toString())
     };
   }))
   .pipe(handlebars({}, {

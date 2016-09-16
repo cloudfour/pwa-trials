@@ -1,155 +1,217 @@
 'use strict';
 
+class FetchHandler {
+  /**
+   * Fetch something, cache the response, then return a clone of that response.
+   */
+  static passThru (request) {
+    return fetch(request)
+      .then(response => {
+        if (response.ok) {
+          caches.open(cacheName)
+            .then(cache => cache.put(request, response));
+        }
+        return response.clone();
+      });
+  }
 
-/*
-TODO:
-Intercept <link> fetch for rev-manifest.json
-Compare integrity hash from request to one saved in cache
-If different, then replace the assets cache and update cache entry.
-*/
+  /**
+   * Return a cached response, ignoring query strings in its URL.
+   */
+  static matchFuzzy (request) {
+    return caches.match(request, {ignoreSearch: true});
+  }
 
+  /**
+   * Return a cached response if possible, otherwise fetch it from the
+   * network (and also cache the new response).
+   */
+  static offlineFirst (request) {
+    return FetchHandler.matchFuzzy(request)
+      .then(response => response || FetchHandler.passThru(request))
+  }
 
-const cacheName = 'default';
+  /**
+   * Fetch a response from the network if possible, otherwise find and
+   * return a cached version.
+   */
+  static onlineFirst (request) {
+    return FetchHandler.passThru(request)
+      .then(response => {
+        if (!response.ok) throw `Bad response ${response.statusText}`;
+        return response;
+      })
+      .catch(() => FetchHandler.matchFuzzy(request))
+  }
 
-const dependencies = new Map([
-  ['offlinePage', '/offline.html'],
-  ['offlineImage', '/assets/image.gif']
+  /**
+   * Fetch a response from the network and from the cache, and return whichever
+   * one resolves first (while also updating the cache with a fresh response).
+   */
+  static fastest (request) {
+    return Promise.race([
+      FetchHandler.passThru(request),
+      FetchHandler.matchFuzzy(request)
+    ]);
+  }
+}
+
+class Criteria {
+  constructor (rules=[]) {
+    this.rules = rules;
+  }
+
+  getResults (subject) {
+    return this.rules
+      .map(rule => rule(subject));
+  }
+
+  testAny (subject) {
+    return this.getResults(subject)
+      .some(result => result === true);
+  }
+
+  testAll (subject) {
+    return this.getResults(subject)
+      .every(result => result === true);
+  }
+}
+
+const version = '0.1.0';
+const cacheName = `cloudfour@${version}`;
+const manifest = new Request('/rev-manifest.json', {cache: 'no-store'});
+const offlinePage = new Request('/offline.html', {cache: 'no-store'});
+const fallbackImage = new Response(new Blob());
+
+// const messageActions = new Map([
+//   [undefined, () => Promise.reject(null)]
+// ]);
+
+const resourceType = Object.freeze({
+  image: Symbol('image'),
+  script: Symbol('script'),
+  stylesheet: Symbol('stylesheet')
+});
+
+const resourceTypeKeys = Object.keys(resourceType);
+
+const typesByExtension = new Map([
+  ['css', resourceType.stylesheet],
+  ['js',  resourceType.script],
+  ['gif', resourceType.image],
+  ['jpg', resourceType.image],
+  ['png', resourceType.image],
+  ['svg', resourceType.image]
 ]);
 
-const fallbacks = new Map([
-  ['image', dependencies.get('offlineImage')],
-  ['page', dependencies.get('offlinePage')]
+const extensionKeys = Array.from(typesByExtension.keys());
+
+const extensionsByType = new Map(
+  resourceTypeKeys.map(key => [
+    resourceType[key],
+    extensionKeys.filter(ext =>
+      typesByExtension.get(ext) === resourceType[key]
+    )
+  ])
+);
+
+const routesByType = new Map([
+  [resourceType.image, FetchHandler.offlineFirst],
+  [resourceType.script, FetchHandler.offlineFirst],
+  [resourceType.stylesheet, FetchHandler.offlineFirst],
+  [undefined, FetchHandler.onlineFirst]
 ]);
 
-const messageActions = new Map([
-  ['updateAssets', updateAssets],
-  [undefined, () => Promise.reject(null)]
-]);
-
-const assetRules = new Map([
-  ['css', [
-    req => req.headers.get('accept').includes('css'),
-    req => new URL(req.url).pathname.endsWith('.css')
-  ]],
-  ['js', [
-    req => req.headers.get('accept').includes('javascript'),
-    req => new URL(req.url).pathname.endsWith('.js')
-  ]],
-  ['image', [
-    req => /\.(png|gif|jpg|svg)$/.test(req.url)
-  ]]
-]);
-
-function openCache () {
-  return caches.open(cacheName);
+function getExtension (subject) {
+  const {pathname} = new URL(subject.url);
+  const [extension] = pathname.match(/(?!\.)\w+$/i) || [];
+  return extension;
 }
 
-function deleteCache () {
-  return caches.delete(cacheName);
+function fetchData (request) {
+  return fetch(request)
+    .then(response => response.json());
 }
 
-function anyPass (rules, subject) {
-  return rules
-    .map(rule => rule(subject))
-    .some(result => result === true);
+function deleteCaches (filter) {
+  return caches.keys()
+    .then(keys => filter ? keys.filter(filter) : keys)
+    .then(keys => keys.map(key => caches.delete(key)))
+    .then(deletions => Promise.all(deletions));
 }
 
-function cacheUrls (urls) {
-  return openCache()
-    .then(cache => cache.addAll(urls))
-    .then(() => true)
-    .catch(() => false);
-}
-
-function fetchValues (jsonUrl) {
-  return fetch(jsonUrl)
-    .then(res => res.json())
-    .then(json => Object.values(json));
-}
-
-function fetchKeep (req) {
-  return fetch(req)
-    .then(res => {
-      if (res.ok) {
-        openCache().then(cache => cache.put(req, res));
-      }
-      return res.clone();
+function getCachedFallbacks () {
+  return caches.open(cacheName)
+    .then(cache => cache.keys())
+    .then(requests => {
+      return requests.filter(
+        request => new URL(request.url).searchParams.has('fallback')
+      );
     });
 }
 
-function updateAssets (manifestUrl) {
-  return fetchValues(manifestUrl)
-    .then(urls => cacheUrls(urls))
-    .catch(() => false);
-}
-
+/**
+ * Installation event handling
+ */
 addEventListener('install', event => {
+  console.log(event);
   event.waitUntil(
-    deleteCache()
-      .then(cacheUrls(Array.from(dependencies.values())))
+    Promise.all([caches.open(cacheName), fetchData(manifest)])
+      .then(([cache, data]) => {
+        const urls = Object.values(data);
+        urls.push(offlinePage);
+        return cache.addAll(urls);
+      })
       .then(skipWaiting())
   );
 });
 
+/**
+ * Activate event handling
+ */
 addEventListener('activate', event => {
-  event.waitUntil(clients.claim());
+  console.log(event);
+  event.waitUntil(
+    deleteCaches(name => name !== cacheName)
+      .then(clients.claim())
+  );
 });
 
 /**
- * @TODO: implement
- * Inspect event request to determine if it needs handling.
- * Depending on the type of resource requested (image, page, etc.), do something.
+ * Fetch event handling
  */
-addEventListener('fetch', event => { //console.log(`[online: ${navigator.onLine}] fetch ${event.request.url}`);
+addEventListener('fetch', event => {
   const request = event.request;
-  const url = new URL(request.url);
-  let assetType;
+  const extension = getExtension(request);
+  const type = typesByExtension.get(extension);
+  const route = routesByType.get(type);
 
-  for (let [type, rules] of assetRules) {
-    if (anyPass(rules, request)) {
-      assetType = type;
-      break;
-    }
-  }
+  const criteria = new Criteria([
+    ({referrer}) => referrer.startsWith(registration.scope) || referrer === '',
+    ({method}) => method === 'GET'
+  ]);
 
-  if (assetType) {
+  if (criteria.testAll(request)) {
+    const showOffline = !navigator.onLine && request.mode === 'navigate';
+    event.preventDefault();
     event.respondWith(
-      caches.match(request)
-        .then(res => res || fetchKeep(request))
-        .catch(() => caches.match(fallbacks.get(assetType)))
-    );
-  } else {
-    event.respondWith(
-      fetchKeep(request)
-        .catch(() => caches.match(request))
-        .then(res => res || caches.match(fallbacks.get('page')))
+      showOffline ? caches.match(offlinePage) : route(request)
     );
   }
 });
 
 /**
- * @TODO: implement
- * Inspect event message to determine if it needs handling.
- * Depending on the type of message, do something.
+ * Message event handling
  */
-addEventListener('message', event => { console.log(event);
-  const {action, payload} = event.data;
-  const command = messageActions.get(action);
-  command(payload)
-    .then(success => {
-      return Promise.all([
-        clients.get(event.source.id),
-        success
-      ])
-    })
-    .then(([client, success]) => client.postMessage({
-      action: 'storeAssetHash'
-    }))
+addEventListener('message', event => {
+  console.log(event);
+  clients.get(event.source.id)
+    .then(client => client.postMessage(event.data));
 });
 
 /**
- * @TODO: implement
+ * Sync event handling
  */
 addEventListener('sync', event => {
-  //
+  console.log(event);
 });
