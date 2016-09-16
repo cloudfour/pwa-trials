@@ -10,8 +10,10 @@ class FetchHandler {
         if (response.ok) {
           caches.open(cacheName)
             .then(cache => cache.put(request, response));
+          return response.clone();
+        } else {
+          return response;
         }
-        return response.clone();
       });
   }
 
@@ -81,7 +83,6 @@ const version = '0.1.0';
 const cacheName = `cloudfour@${version}`;
 const manifest = new Request('/rev-manifest.json', {cache: 'no-store'});
 const offlinePage = new Request('/offline.html', {cache: 'no-store'});
-const fallbackImage = new Response(new Blob());
 
 // const messageActions = new Map([
 //   [undefined, () => Promise.reject(null)]
@@ -140,16 +141,6 @@ function deleteCaches (filter) {
     .then(deletions => Promise.all(deletions));
 }
 
-function getCachedFallbacks () {
-  return caches.open(cacheName)
-    .then(cache => cache.keys())
-    .then(requests => {
-      return requests.filter(
-        request => new URL(request.url).searchParams.has('fallback')
-      );
-    });
-}
-
 /**
  * Installation event handling
  */
@@ -196,6 +187,7 @@ addEventListener('fetch', event => {
     event.preventDefault();
     event.respondWith(
       showOffline ? caches.match(offlinePage) : route(request)
+        .then(response => response.ok ? response : new Response())
     );
   }
 });
