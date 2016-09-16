@@ -54,27 +54,6 @@ class FetchHandler {
   }
 }
 
-class Criteria {
-  constructor (rules=[]) {
-    this.rules = rules;
-  }
-
-  getResults (subject) {
-    return this.rules
-      .map(rule => rule(subject));
-  }
-
-  testAny (subject) {
-    return this.getResults(subject)
-      .some(result => result === true);
-  }
-
-  testAll (subject) {
-    return this.getResults(subject)
-      .every(result => result === true);
-  }
-}
-
 const fetchOptions = {
   shell: {cache: 'no-store'}
 };
@@ -111,6 +90,25 @@ const routesByType = new Map([
 const fallbacks = new Map([
   [resourceType.image, fallbackImage]
 ]);
+
+/**
+ * These must all pass for a request to be handled.
+ */
+const fetchRules = [
+  request => request.method === 'GET',
+  request => {
+    const {referrer} = request;
+    return !referrer.length || referrer.startsWith(registration.scope)
+  }
+];
+
+/**
+ * These must all pass in order to show the offline page.
+ */
+const offlineRules = [
+  () => navigator.onLine === false,
+  request => request.mode === 'navigate'
+];
 
 function getExtension (subject) {
   const {pathname} = new URL(subject.url);
@@ -187,23 +185,26 @@ addEventListener('activate', event => {
  * Fetch event handling
  */
 addEventListener('fetch', event => {
-  console.log(event);
   const request = event.request;
-  const extension = getExtension(request);
-  const type = typesByExtension.get(extension);
-  const route = routesByType.get(type);
+  const shouldCancel = testAll(offlineRules, true, request);
+  const shouldHandle = testAll(fetchRules, true, request);
 
-  const criteria = new Criteria([
-    ({referrer}) => referrer.startsWith(registration.scope) || referrer === '',
-    ({method}) => method === 'GET'
-  ]);
-
-  if (criteria.testAll(request)) {
-    const showOffline = !navigator.onLine && request.mode === 'navigate';
-    const fallback = matchFallback(type);
+  if (shouldCancel) {
     event.preventDefault();
-    event.respondWith(
-      showOffline ? caches.match(offlinePage) : route(request)
+    return event.respondWith(
+      caches.match(offlinePage)
+    );
+  }
+
+  if (shouldHandle) {
+    const extension = getExtension(request);
+    const type = typesByExtension.get(extension);
+    const route = routesByType.get(type);
+    const fallback = matchFallback(type);
+
+    event.preventDefault();
+    return event.respondWith(
+      route(request)
         .then(response => isGoodResponse(response) ? response : fallback)
         .catch(() => fallback)
     );
