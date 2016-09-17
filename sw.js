@@ -112,7 +112,7 @@ function deleteCaches (filter) {
 function matchFallback (type) {
   const fallback = fallbacks.get(type);
   return fallback ?
-    caches.match(fallback) :
+    readCache(fallback) :
     Promise.resolve(new Response())
 }
 
@@ -188,7 +188,7 @@ addEventListener('fetch', event => {
   if (shouldCancel) {
     event.preventDefault();
     return event.respondWith(
-      caches.match(offlinePage)
+      readCache(offlinePage)
     );
   }
 
