@@ -1,67 +1,10 @@
 'use strict';
 
-class FetchHandler {
-  /**
-   * Fetch something, cache the response, then return a clone of that response.
-   */
-  static passThru (request) {
-    return fetch(request)
-      .then(response => {
-        return isGoodResponse(response) ?
-          putCache(cacheName, request, response) :
-          response;
-      });
-  }
-
-  /**
-   * Return a cached response, ignoring query strings in its URL.
-   */
-  static matchFuzzy (request) {
-    return caches.match(request, {ignoreSearch: true});
-  }
-
-  /**
-   * Return a cached response if possible, otherwise fetch it from the
-   * network (and also cache the new response).
-   */
-  static offlineFirst (request) {
-    return FetchHandler.matchFuzzy(request)
-      .then(response => response || FetchHandler.passThru(request))
-  }
-
-  /**
-   * Fetch a response from the network if possible, otherwise find and
-   * return a cached version.
-   */
-  static onlineFirst (request) {
-    return FetchHandler.passThru(request)
-      .then(response => {
-        return isGoodResponse(response) ?
-          response :
-          FetchHandler.matchFuzzy(request)
-      });
-  }
-
-  /**
-   * Fetch a response from the network and from the cache, and return whichever
-   * one resolves first (while also updating the cache with a fresh response).
-   */
-  static fastest (request) {
-    return Promise.race([
-      FetchHandler.passThru(request),
-      FetchHandler.matchFuzzy(request)
-    ]);
-  }
-}
-
-const fetchOptions = {
-  shell: {cache: 'no-store'}
-};
 const version = '0.1.0';
 const cacheName = `cloudfour@${version}`;
-const manifest = new Request('/rev-manifest.json', fetchOptions.shell);
-const offlinePage = new Request('/offline.html', fetchOptions.shell);
-const fallbackImage = new Request('/assets/image.gif', fetchOptions.shell);
+const manifest = '/rev-manifest.json';
+const offlinePage = '/offline.html';
+const fallbackImage = '/assets/image.gif';
 
 const resourceType = Object.freeze({
   iframe: Symbol('iframe'),
@@ -80,11 +23,11 @@ const typesByExtension = new Map([
 ]);
 
 const routesByType = new Map([
-  [resourceType.iframe, FetchHandler.onlineFirst],
-  [resourceType.image, FetchHandler.offlineFirst],
-  [resourceType.script, FetchHandler.offlineFirst],
-  [resourceType.stylesheet, FetchHandler.offlineFirst],
-  [undefined, FetchHandler.onlineFirst]
+  [resourceType.iframe, fetchOnlineFirst],
+  [resourceType.image, fetchOfflineFirst],
+  [resourceType.script, fetchOfflineFirst],
+  [resourceType.stylesheet, fetchOfflineFirst],
+  [undefined, fetchOnlineFirst]
 ]);
 
 const fallbacks = new Map([
@@ -110,6 +53,74 @@ const offlineRules = [
   request => request.mode === 'navigate'
 ];
 
+/**
+ * Fetch and cache strategy functions
+ * ----------------------------------
+ */
+
+function readCache (request) {
+  const options = {ignoreSearch: true};
+  return caches.match(request, options);
+}
+
+function writeCache (name, request, response) {
+  caches.open(name).then(
+    cache => cache.put(request, response)
+  );
+  return response.clone();
+}
+
+function fetchUpdate (request) {
+  return fetch(request).then(response => {
+    return isGoodResponse(response) ?
+      writeCache(cacheName, request, response) : response;
+  });
+}
+
+function fetchOnlineFirst (request) {
+  return fetchUpdate(request).then(response => {
+    return isGoodResponse(response) ?
+      response : readCache(request)
+  });
+}
+
+function fetchOfflineFirst (request) {
+  return readCache(request).then(
+    response => response || fetchUpdate(request)
+  );
+}
+
+function fetchFastest (request) {
+  return Promise.race([
+    fetchUpdate(request),
+    readCache(request)
+  ]);
+}
+
+/**
+ * Cache management functions
+ * --------------------------
+ */
+
+function deleteCaches (filter) {
+  return caches.keys()
+    .then(keys => filter ? keys.filter(filter) : keys)
+    .then(keys => keys.map(key => caches.delete(key)))
+    .then(deletions => Promise.all(deletions));
+}
+
+function matchFallback (type) {
+  const fallback = fallbacks.get(type);
+  return fallback ?
+    caches.match(fallback) :
+    Promise.resolve(new Response())
+}
+
+/**
+ * Utility functions
+ * -----------------
+ */
+
 function getExtension (subject) {
   const {pathname} = new URL(subject.url);
   const [extension] = pathname.match(/(?!\.)\w+$/i) || [];
@@ -119,26 +130,6 @@ function getExtension (subject) {
 function fetchData (request) {
   return fetch(request)
     .then(response => response.json());
-}
-
-function deleteCaches (filter) {
-  return caches.keys()
-    .then(keys => filter ? keys.filter(filter) : keys)
-    .then(keys => keys.map(key => caches.delete(key)))
-    .then(deletions => Promise.all(deletions));
-}
-
-function putCache (name, request, response) {
-  caches.open(name)
-    .then(cache => cache.put(request, response));
-  return response.clone();
-}
-
-function matchFallback (type) {
-  const fallback = fallbacks.get(type);
-  return fallback ?
-    caches.match(fallback) :
-    Promise.resolve(new Response())
 }
 
 function isGoodResponse (response) {
@@ -152,6 +143,11 @@ function testAll (rules, result, subject) {
 function testAny (rules, result, subject) {
   return rules.some(rule => rule(subject) === result);
 }
+
+/**
+ * Service worker event handlers
+ * -----------------------------
+ */
 
 /**
  * Installation event handling
