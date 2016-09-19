@@ -40,7 +40,7 @@ gulp.task('rev', ['css', 'js'], () => gulp.src('dist/assets/main.{css,js}', {bas
   .pipe(gulp.dest('dist'))
 );
 
-gulp.task('html', ['rev'], () => gulp.src('*.html')
+gulp.task('html', ['rev'], () => gulp.src('{*,offline/*}.html')
   .pipe(data(file => {
     const manifest = fs.readFileSync('./dist/rev-manifest.json');
     return {
