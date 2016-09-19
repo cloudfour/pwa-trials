@@ -1,5 +1,10 @@
 'use strict';
 
+/**
+ * Configuration
+ * -------------
+ */
+
 const version = '0.1.0';
 const cacheName = `cloudfour@${version}`;
 const manifest = '/rev-manifest.json';
@@ -137,9 +142,19 @@ function getExtension (subject) {
   return extension;
 }
 
-function fetchData (request) {
+function fetchJSON (request) {
   return fetch(request)
     .then(response => response.json());
+}
+
+function fetchObject (request) {
+  return fetchJSON(request)
+    .catch(() => ({}));
+}
+
+function fetchArray (request) {
+  return fetchJSON(request)
+    .catch(() => ([]));
 }
 
 function isGoodResponse (response) {
@@ -163,8 +178,7 @@ function testAny (rules, result, subject) {
  * Installation event handling
  */
 addEventListener('install', event => {
-  const dependencies = fetchData(manifest)
-    .catch(() => ({}))
+  const dependencies = fetchObject(manifest)
     .then(data => Object.values(data))
     .then(vals => vals.concat(offlinePage, fallbackImage));
 
@@ -179,7 +193,6 @@ addEventListener('install', event => {
  * Activate event handling
  */
 addEventListener('activate', event => {
-  console.log(event);
   deleteCaches(name => name !== cacheName);
   return event.waitUntil(
     clients.claim()
@@ -191,17 +204,17 @@ addEventListener('activate', event => {
  */
 addEventListener('fetch', event => {
   const request = event.request;
-  const shouldCancel = testAll(offlineRules, true, request);
-  const shouldHandle = testAll(fetchRules, true, request);
 
-  if (shouldCancel) {
+  // If we should serve the offline page
+  if (testAll(offlineRules, true, request)) {
     event.preventDefault();
     return event.respondWith(
       readCache(offlinePage)
     );
   }
 
-  if (shouldHandle) {
+  // If we should handle this as a subresource request
+  if (testAll(fetchRules, true, request)) {
     const extension = getExtension(request);
     const type = typesByExtension.get(extension);
     const route = routesByType.get(type);
@@ -220,7 +233,6 @@ addEventListener('fetch', event => {
  * Message event handling
  */
 addEventListener('message', event => {
-  console.log(event);
   clients.get(event.source.id)
     .then(client => client.postMessage(event.data));
 });
@@ -229,5 +241,15 @@ addEventListener('message', event => {
  * Sync event handling
  */
 addEventListener('sync', event => {
-  console.log(event);
+
 });
+
+
+/**
+ * Debugging
+ * ---------
+ */
+
+['install', 'activate', 'fetch', 'message', 'sync'].forEach(type => {
+  addEventListener(type, console.log.bind(console));
+})
