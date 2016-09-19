@@ -34,11 +34,21 @@ const fallbacks = new Map([
   [resourceType.image, fallbackImage]
 ]);
 
+const hosts = [
+  'localhost',
+  'cloudfour.com',
+  '29comwzoq712ml5vj5gf479x-wpengine.netdna-ssl.com'
+];
+
 /**
  * These must all pass for a request to be handled.
  */
 const fetchRules = [
   request => request.method === 'GET',
+  request => {
+    const url = request.url.split('://').pop(); // TODO: Nasty
+    return hosts.some(host => url.startsWith(host));
+  },
   request => {
     const {referrer} = request;
     return !referrer.length || referrer.startsWith(registration.scope)
@@ -153,15 +163,14 @@ function testAny (rules, result, subject) {
  * Installation event handling
  */
 addEventListener('install', event => {
-  console.log(event);
+  const dependencies = fetchData(manifest)
+    .catch(() => ({}))
+    .then(data => Object.values(data))
+    .then(vals => vals.concat(offlinePage, fallbackImage));
+
   return event.waitUntil(
-    Promise.all([caches.open(cacheName), fetchData(manifest)])
-      .then(([cache, data]) => {
-        const shellRequests = Object.values(data);
-        return cache.addAll(
-          shellRequests.concat(offlinePage, fallbackImage)
-        );
-      })
+    Promise.all([caches.open(cacheName), dependencies])
+      .then(([cache, urls]) => cache.addAll(urls))
       .then(skipWaiting())
   );
 });

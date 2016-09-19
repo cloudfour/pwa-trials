@@ -7,19 +7,27 @@
     <!-- <link rel="prefetch" href="/assets/image.gif?fallback"> -->
   </head>
   <body>
-    <h1>test</h1>
+    <h1>Test Form</h1>
     <form>
       <input name="msg">
       <button type="submit" class="Button">Post Message</button>
       <button type="button" class="Button" id="reload">Reload shell</button>
     </form>
-
+    <hr>
+    <h1>Iframe</h1>
     <iframe src="/iframe.html"></iframe>
-
-    <p>
-      <img width="300" src="/nope.png" alt="This does not exist">
-      <img width="300" src="//echo.getpostman.com/status/500.png" alt="This will error">
-    </p>
+    <hr>
+    <h1>Images</h1>
+    <h2>Local (should load)</h2>
+    <img width="200" src="/{{assetPath "assets/image.gif"}}" alt="This should load">
+    <h2>Cloudfour.com (should load)</h2>
+    <img width="200" src="https://cloudfour.com/wp-content/uploads/2016/07/home-goals.svg" alt="This should load" crossorigin="anonymous">
+    <h2>CDN (should load)</h2>
+    <img width="200" src="https://29comwzoq712ml5vj5gf479x-wpengine.netdna-ssl.com/wp-content/themes/cloudfour/static/toolkit/images/portland.svg" alt="This should load" crossorigin="anonymous">
+    <h2>External (should pass through)</h2>
+    <img width="200" src="//placeimg.com/640/480/any" alt="This should load">
+    <h2>404 (should fallback)</h2>
+    <img width="200" src="/nope.png" alt="This should fallback">
     <script src="/{{assetPath "assets/main.js"}}"></script>
   </body>
 </html>
