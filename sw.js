@@ -3,8 +3,8 @@
 const version = '0.1.0';
 const cacheName = `cloudfour@${version}`;
 const manifest = '/rev-manifest.json';
-const offlinePage = '/offline.html';
-const fallbackImage = '/assets/image.gif';
+const offlinePage = '/offline';
+const fallbackImage = '/blank.png';
 
 const resourceType = Object.freeze({
   iframe: Symbol('iframe'),

@@ -25,8 +25,8 @@ gulp.task('js', ['sw'], () => gulp.src('src/assets/*.js')
 );
 
 
-gulp.task('img', () => gulp.src('src/assets/*.{png,gif,jpg,svg}')
-  .pipe(gulp.dest('dist/assets'))
+gulp.task('img', () => gulp.src('{*,src/assets/*}.{png,gif,jpg,svg}')
+  .pipe(gulp.dest('dist'))
 );
 
 gulp.task('sw', () => gulp.src('sw.js')
