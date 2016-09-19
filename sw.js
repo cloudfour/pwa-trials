@@ -53,10 +53,6 @@ const fetchRules = [
   request => {
     const url = request.url.split('://').pop(); // TODO: Nasty
     return hosts.some(host => url.startsWith(host));
-  },
-  request => {
-    const {referrer} = request;
-    return !referrer.length || referrer.startsWith(registration.scope)
   }
 ];
 
@@ -235,13 +231,6 @@ addEventListener('fetch', event => {
 addEventListener('message', event => {
   clients.get(event.source.id)
     .then(client => client.postMessage(event.data));
-});
-
-/**
- * Sync event handling
- */
-addEventListener('sync', event => {
-
 });
 
 
