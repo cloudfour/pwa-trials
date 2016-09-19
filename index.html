@@ -4,14 +4,13 @@
     <meta charset="utf-8">
     <title>SW</title>
     <link rel="stylesheet" href="/{{assetPath "assets/main.css"}}">
-    <!-- <link rel="prefetch" href="/assets/image.gif?fallback"> -->
+    <script src="/{{assetPath "assets/main.js"}}"></script>
   </head>
   <body>
     <h1>Test Form</h1>
-    <form>
+    <form onsubmit="event.preventDefault(); sendFormData(this);">
       <input name="msg">
       <button type="submit" class="Button">Post Message</button>
-      <button type="button" class="Button" id="reload">Reload shell</button>
     </form>
     <hr>
     <h1>Iframe</h1>
@@ -28,6 +27,5 @@
     <img width="200" src="//placeimg.com/640/480/any" alt="This should load">
     <h2>404 (should fallback)</h2>
     <img width="200" src="/nope.png" alt="This should fallback">
-    <script src="/{{assetPath "assets/main.js"}}"></script>
   </body>
 </html>
