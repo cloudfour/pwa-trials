@@ -11,7 +11,7 @@ const manifest = '/rev-manifest.json';
 const offlinePage = '/offline';
 const fallbackImage = '/blank.png';
 
-const resourceType = Object.freeze({
+const types = Object.freeze({
   iframe: Symbol('iframe'),
   image: Symbol('image'),
   script: Symbol('script'),
@@ -19,24 +19,24 @@ const resourceType = Object.freeze({
 });
 
 const typesByExtension = new Map([
-  ['css', resourceType.stylesheet],
-  ['js',  resourceType.script],
-  ['gif', resourceType.image],
-  ['jpg', resourceType.image],
-  ['png', resourceType.image],
-  ['svg', resourceType.image]
+  ['css', types.stylesheet],
+  ['js',  types.script],
+  ['gif', types.image],
+  ['jpg', types.image],
+  ['png', types.image],
+  ['svg', types.image]
 ]);
 
 const routesByType = new Map([
-  [resourceType.iframe, fetchOnlineFirst],
-  [resourceType.image, fetchOfflineFirst],
-  [resourceType.script, fetchOfflineFirst],
-  [resourceType.stylesheet, fetchOfflineFirst],
+  [types.iframe, fetchOnlineFirst],
+  [types.image, fetchOfflineFirst],
+  [types.script, fetchOfflineFirst],
+  [types.stylesheet, fetchOfflineFirst],
   [undefined, fetchOnlineFirst]
 ]);
 
 const fallbacks = new Map([
-  [resourceType.image, fallbackImage]
+  [types.image, fallbackImage]
 ]);
 
 const hosts = [
