@@ -1,0 +1,19 @@
+{
+  "cacheName": "cloudfour",
+  "hosts": [
+    "localhost",
+    "cloudfour.com",
+    "29comwzoq712ml5vj5gf479x-wpengine.netdna-ssl.com"
+  ],
+  "extensions": [
+    "jpg",
+    "png",
+    "svg",
+    "gif",
+    "svg",
+    "webp"
+  ],
+  "exclusions": [
+    "/wp-."
+  ]
+}
