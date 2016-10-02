@@ -3,19 +3,20 @@
 if ('serviceWorker' in navigator) {
   const sw = navigator.serviceWorker;
 
-  sw.register('/sw.js').then(
-    reg => console.log('worker registered', reg)
-  );
+  sw.register('/sw.js');
 
-  sw.addEventListener('controllerchange', event => {
-    console.log('worker controller changed');
+  window.sendFormData = function (form) {
+    const formData = new FormData(form);
+    sw.controller.postMessage(formData.get('msg'));
+  };
+
+  // Debug logging
+
+  ['controllerchange', 'message'].forEach(type => {
+    sw.addEventListener(type, console.log.bind(console));
   });
 
-  addEventListener('online', event => {
-    console.log('browser is online');
-  });
-
-  addEventListener('offline', event => {
-    console.log('browser is offline');
+  ['online', 'offline'].forEach(type => {
+    addEventListener(type, console.log.bind(console));
   });
 }
