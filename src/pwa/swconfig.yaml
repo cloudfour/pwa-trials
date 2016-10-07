@@ -1,6 +1,5 @@
-# The cache will be named after this, and any caches not matching this
-# will be deleted during activation.
-cacheName: cloudfour@1.0
+# Caches will be prefixed with this.
+cacheName: cloudfour
 
 # Request URLs must match these path patterns to be handled. The scope of the
 # service worker itself will implicitly be added to this list.
@@ -28,11 +27,14 @@ cacheAllowed:
   - css
   - html
 
-# These will be cached during installation. The build process will expand these
-# glob patterns into discrete file paths.
+# These will be cached during installation. The build process will convert any
+# keys from rev-manifest.json to the corresponding file path.
 dependencies:
+  - /
   - /offline/
-  - /appshell/**/*
+  - /assets/appshell.css # => /assets/appshell-abc123xyz.css
+  - /assets/appshell.js  # => /assets/appshell-abc123xyz.js
+  - /assets/blank.png    # => /assets/blank-abc123xyz.png
 
 # This will be served as a fallback page response if:
 # a) the network errors
@@ -44,8 +46,9 @@ fallbackPage: /offline/
 # a) no cached match can be found
 # b) the network returns a 404
 # c) the network errors
-# This must also be present in `dependencies`.
-fallbackImage: /appshell/blank.png
+# This must also be present in `dependencies`. The build process will convert
+# any keys from rev-manifest.json to the corresponding file path.
+fallbackImage: /assets/blank.png # => /assets/blank-abc123xyz.png
 
 # Post message to clients when offline.
 notifyOffline: true
