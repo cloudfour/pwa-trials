@@ -1,0 +1,54 @@
+# The cache will be named after this, and any caches not matching this
+# will be deleted during activation.
+cacheName: cloudfour@1.0
+
+# Request URLs must match these path patterns to be handled. The scope of the
+# service worker itself will implicitly be added to this list.
+fetchAllowed:
+  - //fonts.gstatic.com/
+  - //29comwzoq712ml5vj5gf479x-wpengine.netdna-ssl.com/
+
+# Request URLs must not match these path patterns to be handled. The location of
+# the service worker itself will implicitly be added to this list.
+fetchIgnored:
+  - /wp-content/uploads/
+  - /wp-admin
+  - /wp-login.php
+  - preview=true
+
+# Responses must have content-type headers matching these substrings in order
+# for them to be cached.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types
+cacheAllowed:
+  - font
+  - js
+  - javascript
+  - pdf
+  - image
+  - css
+  - html
+
+# These will be cached during installation. The build process will expand these
+# glob patterns into discrete file paths.
+dependencies:
+  - /offline/
+  - /appshell/**/*
+
+# This will be served as a fallback page response if:
+# a) the network errors
+# b) no cached match can be found
+# This must also be present in `dependencies`.
+fallbackPage: /offline/
+
+# This will be served as a fallback image response if:
+# a) no cached match can be found
+# b) the network returns a 404
+# c) the network errors
+# This must also be present in `dependencies`.
+fallbackImage: /appshell/blank.png
+
+# Post message to clients when offline.
+notifyOffline: true
+
+# Post message to clients when cache is appended.
+notifyCached: true
