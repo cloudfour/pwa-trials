@@ -1,0 +1,22 @@
+@import "./fonts.css";
+
+:root {
+  --background-color: #222;
+  --color: color(var(--background-color) contrast(80%));
+  --font-fallback: Helvetica, sans-serif;
+  --font-family: "Source Sans Pro", var(--font-fallback);
+}
+
+html {
+  background-color: var(--background-color);
+  color: var(--color);
+  line-height: 1.5;
+  font-size: 1.2em;
+  font-size-adjust: .45;
+  font-family: var(--font-family);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}

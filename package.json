@@ -4,8 +4,11 @@
   "description": "An area to test out PWA stuff",
   "main": "index.js",
   "scripts": {
-    "start": "gulp clean && gulp && http-server dist --cors -s -c15 --a=localhost --p=3000",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "serve": "http-server dist -c10 -s --a=localhost --p=3000",
+    "start": "gulp clean && gulp build && npm run serve",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "subset": "pyftsubset static/source-sans-pro-v9-latin-regular.woff --verbose --drop-tables+=GSUB --no-hinting --text=\" ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890,.\" --output-file=static/source-sans-pro-v9-subset-regular.woff",
+    "subsetdata": "datauri static/source-sans-pro-v9-subset-regular.woff --copy"
   },
   "repository": {
     "type": "git",
@@ -19,10 +22,12 @@
   "homepage": "https://github.com/cloudfour/pwa-trials#readme",
   "devDependencies": {
     "@cloudfour/gulp-tasks": "^2.0.1",
+    "del": "^2.2.2",
     "gulp": "^3.9.1",
     "gulp-compile-handlebars": "^0.6.1",
     "gulp-data": "^1.2.1",
     "gulp-postcss": "^6.1.1",
+    "gulp-posthtml": "^1.5.2",
     "gulp-replace": "^0.5.4",
     "gulp-rev": "^7.1.2",
     "gulp-rev-all": "^0.8.24",
@@ -31,9 +36,13 @@
     "live-server": "^1.1.0",
     "postcss-cssnext": "^2.7.0",
     "postcss-import": "^8.1.2",
+    "posthtml-include": "^1.1.0",
+    "posthtml-inline-assets": "^1.0.2",
     "rev-del": "^1.0.5",
     "rev-hash": "^1.0.0",
-    "streamqueue": "^1.1.1"
+    "streamqueue": "^1.1.1",
+    "suitcss-components": "^1.0.1",
+    "suitcss-utils": "^2.0.0"
   },
   "dependencies": {
     "suitcss": "^2.0.0"

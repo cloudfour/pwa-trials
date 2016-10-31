@@ -5,7 +5,7 @@ An area to test out PWA stuff
 src/
   manifest.json     transformed to /manifest.json
   swconfig.yaml     transformed to /swconfig.json
-  assets/
+  assets/           (everything in here is rev-named)
     appshell.css    transformed to /assets/appshell-abc123xyz.css
     appshell.js     transformed to /assets/appshell-abc123xyz.js
     blank.png       transformed to /assets/blank-abc123xyz.png
@@ -18,7 +18,16 @@ src/
   js/
     dom/            compiled within appshell.js or toolkit.js
     utils/          compiled within appshell.js or toolkit.js
+    vendor/         included as standalone files or via importScripts()
     workers/
       sw.js         transformed to /sw.js
 
+```
+
+```
+
+css/components/button
+  core.css
+  more.css
+  theme.css
 ```

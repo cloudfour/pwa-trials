@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <include src="head.html"></include>
+    <title>PWA Test Page</title>
+  </head>
+  <body>
+    <h1>PWA Test Page</h1>
+    <p>This is a test page for PWA technologies.</p>
+
+    <section>
+      <h2>Fonts</h2>
+      <figure>
+        <span style="letter-spacing: 1ch; word-break: break-word">
+          ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890,.
+        </span>
+        <figcaption>Subset characters</figcaption>
+      </figure>
+      <figure>
+        <span style="letter-spacing: 1ch; word-break: break-word">
+          ABCĆČDĐEFGHIJKLMNOPQRSŠTUVWXYZŽabcčćdđefghijklmnopqrsštuvwxyzžĂÂÊÔƠƯăâêôơư1234567890‘?’“!”(%)[#]{@}/&amp;&lt;-+÷×=&gt;®©$€£¥¢:;,.*
+        </span>
+        <figcaption>All characters</figcaption>
+      </figure>
+    </section>
+
+    <section>
+      <h2>Images</h2>
+      <figure>
+        <img src="https://unsplash.it/400?random" alt="" crossorigin>
+        <figcaption>Random CORS</figcaption>
+      </figure>
+      <figure>
+        <img src="/static/fugitive-code.gif" alt="">
+        <figcaption>Local GIF</figcaption>
+      </figure>
+      <figure>
+        <img src="/nope.png" alt="">
+        <figcaption>Local 404</figcaption>
+      </figure>
+    </section>
+
+    <section>
+      <h2>Iframes</h2>
+      <figure>
+        <iframe src="/iframe.html"></iframe>
+        <figcaption>Local  page</figcaption>
+      </figure>
+      <figure>
+        <iframe src="/nope"></iframe>
+        <figcaption>Local 404</figcaption>
+      </figure>
+    </section>
+
+    <include src="foot.html"></include>
+  </body>
+</html>

@@ -1,60 +1,66 @@
 'use strict';
 
-const data = require('gulp-data');
-const fs = require('fs');
+const del = require('del');
 const gulp = require('gulp');
-const handlebars = require('gulp-compile-handlebars')
 const postcss = require('gulp-postcss');
-const rev = require('gulp-rev');
-const revhash = require('rev-hash');
-const tasks = require('@cloudfour/gulp-tasks');
-const maybeVal = (map, key) => map[key] || key;
+const posthtml = require('gulp-posthtml');
 
-tasks.clean(gulp);
+gulp.task('html', () => {
+  const plugins = [
+    require('posthtml-include')({
+      encoding: 'utf8',
+      root: './src/html/includes/'
+    })
+  ];
+  return gulp.src('src/html/*.html')
+    .pipe(posthtml(plugins))
+    .pipe(gulp.dest('dist'));
+});
 
-gulp.task('css', () => gulp.src('src/assets/*.css')
-  .pipe(postcss([
+gulp.task('css', () => {
+  const plugins = [
     require('postcss-import'),
     require('postcss-cssnext')
-  ]))
-  .pipe(gulp.dest('dist/assets'))
-);
+  ];
+  return gulp.src('src/assets/*.css')
+    .pipe(postcss(plugins))
+    .pipe(gulp.dest('dist/assets'));
+});
 
-gulp.task('js', ['sw'], () => gulp.src('src/assets/*.js')
-  .pipe(gulp.dest('dist/assets'))
-);
+gulp.task('js', () => {
+  return gulp.src('src/assets/*.js')
+    .pipe(gulp.dest('dist/assets'));
+});
 
+gulp.task('workers', ['manifest'], () => {
+  return gulp.src('src/js/workers/*.js')
+    .pipe(gulp.dest('dist'));
+});
 
-gulp.task('img', () => gulp.src(['blank.png', 'src/assets/*.{png,gif,jpg,svg}'])
-  .pipe(gulp.dest('dist'))
-);
+gulp.task('manifest', () => {
+  return gulp.src('src/manifest.json')
+    .pipe(gulp.dest('dist'));
+});
 
-gulp.task('sw', () => gulp.src('sw.js')
-  .pipe(gulp.dest('dist'))
-);
+gulp.task('img', () => {
+  return gulp.src('src/assets/*.{png,gif,jpg,svg}')
+    .pipe(gulp.dest('dist/assets'));
+});
 
-gulp.task('rev', ['css', 'js'], () => gulp.src('dist/assets/main.{css,js}', {base: 'dist'})
-  .pipe(rev())
-  .pipe(gulp.dest('dist'))
-  .pipe(rev.manifest())
-  .pipe(gulp.dest('dist'))
-);
+gulp.task('static', () => {
+  return gulp.src('static/*')
+    .pipe(gulp.dest('dist/static'));
+});
 
-gulp.task('html', ['rev'], () => gulp.src('{*,offline/*}.html')
-  .pipe(data(file => {
-    const manifest = fs.readFileSync('./dist/rev-manifest.json');
-    return {
-      assetMap: JSON.parse(manifest.toString())
-    };
-  }))
-  .pipe(handlebars({}, {
-    helpers: {
-      assetPath: (file, context) => {
-        return maybeVal(context.data.root.assetMap, file);
-      }
-    }
-  }))
-  .pipe(gulp.dest('dist'))
-);
+gulp.task('clean', () => del('dist/'));
 
-gulp.task('default', ['html', 'img'], done => done())
+gulp.task('watch', done => {
+  gulp.watch('src/**/*.js', ['js', 'workers']);
+  gulp.watch('src/**/*.css', ['css']);
+  gulp.watch('src/html/**/*', ['html']);
+  done();
+});
+
+gulp.task('build', ['html', 'css', 'js', 'workers', 'img', 'static']);
+
+gulp.task('default', ['build']);
